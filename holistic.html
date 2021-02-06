@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aman Test</title>
+
+  <meta charset="utf-8">
+   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+
+  <style type="text/css">
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}.abs{position:absolute}a{color:#fff;text-decoration:none}body{bottom:0;font-family:'Titillium Web',sans-serif;color:#fff;left:0;margin:0;position:absolute;right:0;top:0;transform-origin:0 0;overflow:hidden}.container{position:absolute;background-color:#596e73;height:720px;width:1280px}.input_video{position:relative;top:0;left:0;right:0;bottom:0}.logo{bottom:10px;right:20px;font-size:28px}.subtitle{position:relative;color:#fff;font-size:10px;left:-30px;top:20px}.loading{display:flex;position:absolute;top:0;right:0;bottom:0;left:0;align-items:center;backface-visibility:hidden;justify-content:center;opacity:1;transition:opacity 1s}.spinner{position:absolute;width:120px;height:120px;animation:spin 1s linear infinite;border:32px solid #bebebe;border-top:32px solid #3498db;border-radius:50%}.shoutout{left:0;right:0;bottom:40px;text-align:center;font-size:24px;position:absolute}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <video class="input_video"></video>
+    <canvas class="output_canvas" width="1280px" height="720px"></canvas>
+  </div>
+</body>
+<script type="module">
+const videoElement = document.getElementsByClassName('input_video')[0];
+const canvasElement = document.getElementsByClassName('output_canvas')[0];
+const canvasCtx = canvasElement.getContext('2d');
+
+function onResults(results) {
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  canvasCtx.drawImage(
+      results.image, 0, 0, canvasElement.width, canvasElement.height);
+  drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
+                 {color: '#00FF00', lineWidth: 4});
+  drawLandmarks(canvasCtx, results.poseLandmarks,
+                {color: '#FF0000', lineWidth: 2});
+  drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION,
+                 {color: '#C0C0C070', lineWidth: 1});
+  drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS,
+                 {color: '#CC0000', lineWidth: 5});
+  drawLandmarks(canvasCtx, results.leftHandLandmarks,
+                {color: '#00FF00', lineWidth: 2});
+  drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS,
+                 {color: '#00CC00', lineWidth: 5});
+  drawLandmarks(canvasCtx, results.rightHandLandmarks,
+                {color: '#FF0000', lineWidth: 2});
+  canvasCtx.restore();
+}
+
+const holistic = new Holistic({locateFile: (file) => {
+  return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+}});
+holistic.setOptions({
+  upperBodyOnly: false,
+  smoothLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+holistic.onResults(onResults);
+
+const camera = new Camera(videoElement, {
+  onFrame: async () => {
+    await holistic.send({image: videoElement});
+  },
+  width: 1280,
+  height: 720
+});
+camera.start();
+</script>
+</html>
