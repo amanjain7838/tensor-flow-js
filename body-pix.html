@@ -31,7 +31,11 @@
        * See documentation below for details on each method.
        */
       const segmentation = await net.segmentPerson(img);
-      console.log(segmentation);
+      const foregroundColor = {r: 0, g: 0, b: 0, a: 0};
+      const backgroundColor = {r: 0, g: 0, b: 0, a: 255};
+      const personMasked = bodyPix.toMask(segmentation,backgroundColor, foregroundColor);
+
+      // console.log(segmentation);
       // const coloredPartImage = bodyPix.toMask(segmentation);
       const opacity = 2;
       const flipHorizontal = false;
@@ -42,21 +46,35 @@
       //   flipHorizontal
       // );
       const maincontext=canvas.getContext('2d');
-      // let tempcanvas=document.createElement('canvas');
-      // document.body.append(tempcanvas);
-      // const pisa=document.getElementById('pisa');
-      // maincontext.drawImage(pisa,0,0,canvas.width,canvas.height);
-      maincontext.drawImage(img,0,0,img.width,img.height);
-      let imageData=maincontext.getImageData(0,0,img.width,img.height);
-      let pixel = imageData.data;
-      for (var p = 0; p<pixel.length; p+=4)
-      {
-          if (segmentation.data[p/4] == 0) {
-              pixel[p+3] = 0;
-          }
-      }
-      maincontext.imageSmoothingEnabled = true;
-      maincontext.putImageData(imageData,0,0);
+      let tempcanvas=document.createElement('canvas');
+      tempcanvas.width=img.width;
+      tempcanvas.height=img.height;
+      document.body.append(tempcanvas);
+      const pisa=document.getElementById('pisa');
+
+      maincontext.drawImage(pisa,0,0,canvas.width,canvas.height);
+      
+      let tempcontext=tempcanvas.getContext('2d');
+      const oldGCO = tempcontext.globalCompositeOperation
+      tempcontext.putImageData(personMasked,0,0);
+      tempcontext.globalCompositeOperation = 'source-in';
+      tempcontext.drawImage(img, 0, 0,img.width,img.height);
+      tempcontext.globalCompositeOperation = oldGCO;
+
+      // let imageData=maincontext.getImageData(0,0,img.width,img.height);
+      // let pixel = imageData.data;
+      // for (var p = 0; p<pixel.length; p+=4)
+      // {
+      //     if (segmentation.data[p/4] == 0) {
+      //         pixel[p+3] = 0;
+      //     }
+      // }
+      // maincontext.imageSmoothingEnabled = true;
+      let x=canvas.width - img.width;
+      let y=canvas.height - img.height;
+      x=Math.max(0,x);
+      y=Math.max(0,y);
+      maincontext.drawImage(tempcanvas,0,y);
 
     }
 
