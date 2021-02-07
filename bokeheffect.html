@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <!-- Load BodyPix -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.0.5"></script>
+ </head>
+
+  <body>
+    <img id='image' src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4egZS6W8V4czX0TiroJPWQvkw8XkLXwzW4g&usqp=CAU&ec=45771800' crossorigin='anonymous'/>
+    <img id="pisa" src="https://www.thebalancesmb.com/thmb/MO1WhZbriEj8hgTW8omIExMS3Ck=/1980x1485/smart/filters:no_upscale()/GettyImages-200403174-001-57a8b3993df78cf4591ab071.jpg" style="display:none;">
+    <canvas id="canvas" width="250" height="250"></canvas>
+  </body>
+  <!-- Place your code in the script tag below. You can also use an external .js file -->
+  <script>
+    const img = document.getElementById('image');
+
+    async function loadAndPredict() {
+      const net = await bodyPix.load({  architecture: 'MobileNetV1',
+        outputStride: 16,
+        multiplier: 0.75,
+        quantBytes: 2
+      });
+
+      /**
+       * One of (see documentation below):
+       *   - net.segmentPerson
+       *   - net.segmentPersonParts
+       *   - net.segmentMultiPerson
+       *   - net.segmentMultiPersonParts
+       * See documentation below for details on each method.
+       */
+      const segmentation = await net.segmentPerson(img);
+      console.log(segmentation);
+      // const coloredPartImage = bodyPix.toMask(segmentation);
+      const opacity = 2;
+      const flipHorizontal = false;
+      const maskBlurAmount = 2;
+      const canvas = document.getElementById('canvas');
+      bodyPix.drawBokehEffect(
+        canvas, img, segmentation, opacity, maskBlurAmount,
+        flipHorizontal
+      );
+      // const maincontext=canvas.getContext('2d');
+      // // let tempcanvas=document.createElement('canvas');
+      // // document.body.append(tempcanvas);
+      // // const pisa=document.getElementById('pisa');
+      // // maincontext.drawImage(pisa,0,0,canvas.width,canvas.height);
+      // maincontext.drawImage(img,0,0,img.width,img.height);
+      // let imageData=maincontext.getImageData(0,0,img.width,img.height);
+      // let pixel = imageData.data;
+      // for (var p = 0; p<pixel.length; p+=4)
+      // {
+      //     if (segmentation.data[p/4] == 0) {
+      //         pixel[p+3] = 0;
+      //     }
+      // }
+      // maincontext.imageSmoothingEnabled = true;
+      // maincontext.putImageData(imageData,0,0);
+
+    }
+
+    loadAndPredict();
+  </script>
+</html>
