@@ -1,0 +1,93 @@
+<html>
+  <head>
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <!-- Load BodyPix -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.0.5"></script>
+ </head>
+
+  <body>
+    <img id='image' src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4egZS6W8V4czX0TiroJPWQvkw8XkLXwzW4g&usqp=CAU&ec=45771800' crossorigin='anonymous'/ style="display:none;">
+    <img id="pisa" src="https://www.thebalancesmb.com/thmb/MO1WhZbriEj8hgTW8omIExMS3Ck=/1980x1485/smart/filters:no_upscale()/GettyImages-200403174-001-57a8b3993df78cf4591ab071.jpg" style="display:none;">
+    <canvas id="canvas" width="250" height="250"></canvas>
+    <video id="video"></video>
+  </body>
+  <!-- Place your code in the script tag below. You can also use an external .js file -->
+  <script>
+    var video = document.getElementById('video');
+    console.log(video)
+    var bodypixload=false,net;
+    var canvas = document.getElementById('canvas');
+    var maincontext=canvas.getContext('2d');
+    var tempcanvas=document.createElement('canvas');
+    var tempcontext=tempcanvas.getContext('2d');
+    const oldGCO = tempcontext.globalCompositeOperation
+    const pisa=document.getElementById('pisa');
+    navigator.mediaDevices.getUserMedia({'video':true})
+
+    .then(function(stream) {
+      /* use the stream */
+      video.srcObject = stream;
+      video.width = 250;
+      video.height = 250;
+      tempcanvas.width=video.width;
+      tempcanvas.height=video.height;
+      video.onloadedmetadata = function(e) {
+        video.play();
+        loadAndPredict();
+      };
+      
+
+
+      })
+    .catch(function(err) {
+      /* handle the error */
+    });
+    async function loadAndPredict() {
+        if(!bodypixload)
+        {
+          net = await bodyPix.load({  architecture: 'MobileNetV1',
+            outputStride: 16,
+            multiplier: 0.75,
+            quantBytes: 2
+          });
+          bodypixload=true;
+        }
+        const segmentation = await net.segmentPerson(video);
+        console.log(segmentation)
+        const foregroundColor = {r: 0, g: 0, b: 0, a: 0};
+        const backgroundColor = {r: 0, g: 0, b: 0, a: 255};
+        const personMasked = bodyPix.toMask(segmentation,backgroundColor, foregroundColor);
+
+        const opacity = 2;
+        const flipHorizontal = false;
+        const maskBlurAmount = 2;
+
+
+        // document.body.append(tempcanvas);
+
+        maincontext.drawImage(pisa,0,0,canvas.width,canvas.height);
+        
+        tempcontext.putImageData(personMasked,0,0);
+        tempcontext.globalCompositeOperation = 'source-in';
+        tempcontext.drawImage(video, 0, 0,video.width,video.height);
+        tempcontext.globalCompositeOperation = oldGCO;
+
+        // let imageData=maincontext.getImageData(0,0,img.width,img.height);
+        // let pixel = imageData.data;
+        // for (var p = 0; p<pixel.length; p+=4)
+        // {
+        //     if (segmentation.data[p/4] == 0) {
+        //         pixel[p+3] = 0;
+        //     }
+        // }
+        // maincontext.imageSmoothingEnabled = true;
+        let x=canvas.width - video.width;
+        let y=canvas.height - video.height;
+        x=Math.max(0,x);
+        y=Math.max(0,y);
+        maincontext.drawImage(tempcanvas,0,y);
+        requestAnimationFrame(loadAndPredict);
+      }
+  </script>
+</html>
