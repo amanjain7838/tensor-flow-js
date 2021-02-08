@@ -18,8 +18,8 @@
     async function loadAndPredict() {
       const net = await bodyPix.load({  architecture: 'MobileNetV1',
         outputStride: 16,
-        multiplier: 0.75,
-        quantBytes: 2
+        multiplier: 1,
+        quantBytes: 4
       });
 
       /**
@@ -30,26 +30,50 @@
        *   - net.segmentMultiPersonParts
        * See documentation below for details on each method.
        */
-      const segmentation = await net.segmentPerson(img);
+      const canvas = document.getElementById('canvas');
+      let tempcanvas=document.createElement('canvas');
+      let etempcanvas=document.createElement('canvas');
+      etempcanvas.width=tempcanvas.width=img.width;
+      etempcanvas.height=tempcanvas.height=img.height;
+      document.body.append(tempcanvas);
+      document.body.append(etempcanvas);
+      
+      segmentation = await net.segmentPerson(img,{
+          segmentationThreshold: 0.8
+      });
+      bodyPix.drawBokehEffect(
+          etempcanvas, img, segmentation, 5,5,
+          false
+      );
+
+      segmentation = await net.segmentPerson(img,{
+          segmentationThreshold: 0.75
+      });
+
       const foregroundColor = {r: 0, g: 0, b: 0, a: 0};
       const backgroundColor = {r: 0, g: 0, b: 0, a: 255};
       const personMasked = bodyPix.toMask(segmentation,backgroundColor, foregroundColor);
+      
+//       const opacity = 0.7;
+//       const flipHorizontal = false;
+//       const maskBlurAmount = 0;
+
+//       bodyPix.drawMask(
+//       tempcanvas, tempcanvas, personMasked, opacity, maskBlurAmount,
+//       flipHorizontal);
+
+// return false;
 
       // console.log(segmentation);
       // const coloredPartImage = bodyPix.toMask(segmentation);
-      const opacity = 2;
-      const flipHorizontal = false;
-      const maskBlurAmount = 2;
-      const canvas = document.getElementById('canvas');
+      // const opacity = 2;
+      // const flipHorizontal = false;
+      // const maskBlurAmount = 2;
       // bodyPix.drawBokehEffect(
       //   canvas, img, segmentation, opacity, maskBlurAmount,
       //   flipHorizontal
       // );
       const maincontext=canvas.getContext('2d');
-      let tempcanvas=document.createElement('canvas');
-      tempcanvas.width=img.width;
-      tempcanvas.height=img.height;
-      document.body.append(tempcanvas);
       const pisa=document.getElementById('pisa');
 
       maincontext.drawImage(pisa,0,0,canvas.width,canvas.height);
@@ -58,7 +82,7 @@
       const oldGCO = tempcontext.globalCompositeOperation
       tempcontext.putImageData(personMasked,0,0);
       tempcontext.globalCompositeOperation = 'source-in';
-      tempcontext.drawImage(img, 0, 0,img.width,img.height);
+      tempcontext.drawImage(etempcanvas, 0, 0,img.width,img.height);
       tempcontext.globalCompositeOperation = oldGCO;
 
       // let imageData=maincontext.getImageData(0,0,img.width,img.height);

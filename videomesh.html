@@ -15,11 +15,14 @@
   <!-- Place your code in the script tag below. You can also use an external .js file -->
   <script>
     var video = document.getElementById('video');
-    console.log(video)
+    // console.log(video)
     var bodypixload=false,net;
     var canvas = document.getElementById('canvas');
     var maincontext=canvas.getContext('2d');
     var tempcanvas=document.createElement('canvas');
+    let etempcanvas=document.createElement('canvas');
+
+    document.body.append(tempcanvas);
     var tempcontext=tempcanvas.getContext('2d');
     const oldGCO = tempcontext.globalCompositeOperation
     const pisa=document.getElementById('pisa');
@@ -30,8 +33,8 @@
       video.srcObject = stream;
       video.width = 250;
       video.height = 250;
-      tempcanvas.width=video.width;
-      tempcanvas.height=video.height;
+      etempcanvas.width=tempcanvas.width=video.width;
+      etempcanvas.height=tempcanvas.height=video.height;
       video.onloadedmetadata = function(e) {
         video.play();
         loadAndPredict();
@@ -47,14 +50,24 @@
         if(!bodypixload)
         {
           net = await bodyPix.load({  architecture: 'MobileNetV1',
-            outputStride: 16,
-            multiplier: 0.75,
-            quantBytes: 2
+            outputStride: 8,
+            multiplier: 1,
+            quantBytes: 4
           });
           bodypixload=true;
         }
-        const segmentation = await net.segmentPerson(video);
-        console.log(segmentation)
+        let segmentation = await net.segmentPerson(video,{
+          segmentationThreshold: 0.8
+        });
+        bodyPix.drawBokehEffect(
+          etempcanvas, video, segmentation, 5,5,
+          false
+        );
+        segmentation = await net.segmentPerson(video,{
+          segmentationThreshold: 0.75
+        });
+
+        // console.log(segmentation)
         const foregroundColor = {r: 0, g: 0, b: 0, a: 0};
         const backgroundColor = {r: 0, g: 0, b: 0, a: 255};
         const personMasked = bodyPix.toMask(segmentation,backgroundColor, foregroundColor);
@@ -70,7 +83,7 @@
         
         tempcontext.putImageData(personMasked,0,0);
         tempcontext.globalCompositeOperation = 'source-in';
-        tempcontext.drawImage(video, 0, 0,video.width,video.height);
+        tempcontext.drawImage(etempcanvas, 0, 0,video.width,video.height);
         tempcontext.globalCompositeOperation = oldGCO;
 
         // let imageData=maincontext.getImageData(0,0,img.width,img.height);
